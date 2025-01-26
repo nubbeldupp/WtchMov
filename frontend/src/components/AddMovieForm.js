@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQueryClient } from 'react-query';
 import { toast } from 'react-toastify';
 
-function AddMovieForm() {
+function AddMovieForm({ onClose }) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('To Watch');
   const [isLoading, setIsLoading] = useState(false);
@@ -10,11 +10,14 @@ function AddMovieForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      toast.error('Please enter a movie title');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/movies`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/movies`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -23,13 +26,16 @@ function AddMovieForm() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add movie');
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to add movie');
       }
 
       setTitle('');
       queryClient.invalidateQueries('movies');
       toast.success('Movie added successfully!');
+      if (onClose) onClose();
     } catch (error) {
+      console.error('Error adding movie:', error);
       toast.error(error.message);
     } finally {
       setIsLoading(false);
@@ -37,30 +43,39 @@ function AddMovieForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-8">
-      <div className="flex flex-col md:flex-row gap-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex flex-col gap-4">
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter movie or TV show title"
-          className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           disabled={isLoading}
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           disabled={isLoading}
         >
           <option value="To Watch">To Watch</option>
           <option value="Watching">Watching</option>
           <option value="Watched">Watched</option>
         </select>
+      </div>
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          Cancel
+        </button>
         <button
           type="submit"
           disabled={isLoading}
-          className={`px-6 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+          className={`px-4 py-2 bg-accent-purple text-white rounded-lg shadow-md hover:bg-opacity-90 transition-all duration-200 ${
             isLoading ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >

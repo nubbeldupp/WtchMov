@@ -78,10 +78,15 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update movie category
-router.patch('/:id/category', (req, res) => {
+// Update movie
+router.patch('/:id', (req, res) => {
   const { id } = req.params;
   const { category } = req.body;
+
+  if (!category) {
+    res.status(400).json({ error: 'Category is required' });
+    return;
+  }
 
   db.run(
     'UPDATE movies SET category = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -91,7 +96,11 @@ router.patch('/:id/category', (req, res) => {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ message: 'Category updated successfully' });
+      if (this.changes === 0) {
+        res.status(404).json({ error: 'Movie not found' });
+        return;
+      }
+      res.json({ message: 'Movie updated successfully' });
     }
   );
 });
@@ -103,6 +112,10 @@ router.delete('/:id', (req, res) => {
   db.run('DELETE FROM movies WHERE id = ?', id, function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
+      return;
+    }
+    if (this.changes === 0) {
+      res.status(404).json({ error: 'Movie not found' });
       return;
     }
     res.json({ message: 'Movie deleted successfully' });
